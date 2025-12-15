@@ -22,8 +22,8 @@ st.markdown("### Generate & Edit Images using AI (Multiple Models)")
 st.markdown("#### 🤖 Choose AI Model")
 model_choice = st.selectbox(
     "Select Generation Model:",
-    ["Gemini (Imagen 3) - Best Quality 🔥", "Pollinations.ai - Free & Fast"],
-    help="Gemini requires API key but produces superior quality. Pollinations is free but lower quality."
+    ["Gemini 3 Pro Image (Nano Banana Pro) 🔥", "Pollinations.ai - Free & Fast"],
+    help="Gemini 3 is our most advanced image model with superior quality. Pollinations is free but lower quality."
 )
 
 # API Key input for Gemini
@@ -86,9 +86,9 @@ with st.expander("🎨 Advanced Settings"):
     
     if "Gemini" in model_choice:
         quality = st.select_slider(
-            "Image Quality",
-            options=["Standard", "High", "Ultra (4K)"],
-            value="High"
+            "Image Quality (Resolution)",
+            options=["1K (1024x1024)", "2K (2048x2048)", "4K (4096x4096)"],
+            value="2K (2048x2048)"
         )
 
 # Generate button
@@ -114,31 +114,64 @@ if st.button("🖌️ Generate Image", use_container_width=True, type="primary")
                 full_prompt = f"{prompt_text}, {style_modifiers[style_mode]}"
                 
                 if "Gemini" in model_choice:
-                    # Use Gemini Imagen 3
-                    st.info("🔥 Using Gemini Imagen 3 for superior quality...")
+                    # Use Gemini 3 Pro Image for actual image generation
+                    st.info("🔥 Using Gemini 3 Pro Image (Nano Banana Pro) for superior quality...")
                     
                     try:
-                        # Configure Gemini
-                        model = genai.GenerativeModel('gemini-1.5-pro')
+                        from google import genai as genai_client
+                        
+                        # Create client
+                        client = genai_client.Client(api_key=api_key)
                         
                         # Prepare content for generation
                         content_parts = [full_prompt]
                         
                         if uploaded_file:
                             content_parts.append(uploaded_image)
-                            content_parts.append("Use this image as reference for style and composition.")
                         
-                        # Generate with Gemini
-                        response = model.generate_content(content_parts)
+                        # Generate images with Gemini 3 Pro Image
+                        for idx in range(num_images):
+                            response = client.models.generate_content(
+                                model="gemini-3-pro-image-preview",
+                                contents=content_parts
+                            )
+                            
+                            # Extract and display generated image
+                            for part in response.parts:
+                                if part.inline_data is not None:
+                                    image = part.as_image()
+                                    st.image(image, caption=f"Generated Image {idx+1} - Gemini 3 Pro", use_container_width=True)
+                                    
+                                    # Save to BytesIO for download
+                                    buf = BytesIO()
+                                    image.save(buf, format='PNG')
+                                    buf.seek(0)
+                                    st.download_button(
+                                        label=f"⬇️ Download Image {idx+1}",
+                                        data=buf,
+                                        file_name=f"gemini3_generated_{idx+1}.png",
+                                        mime="image/png"
+                                    )
                         
                         st.success("✅ Generation Complete! 🎉")
-                        st.markdown(response.text)
-                        
-                        st.info("⚠️ Note: Direct image generation via Gemini API requires Vertex AI. Using text response for now. For actual image generation, consider using Vertex AI or switch to Pollinations model.")
+                        st.info("💡 Pro Tip: Gemini 3 Pro produces the highest quality images perfect for professional use!")
                         
                     except Exception as e:
                         st.error(f"❌ Gemini Error: {str(e)}")
-                        st.info("💡 Tip: Make sure your API key has access to Gemini models. You might need Vertex AI for image generation.")
+                        st.info("💡 Tip: Make sure your API key has access to Gemini 3 models. You can get one free at https://ai.google.dev/")
+                        st.info("🔄 Falling back to Pollinations for image generation...")
+                        
+                        # Fallback to Pollinations
+                        for idx in range(num_images):
+                            image_url = f"https://image.pollinations.ai/prompt/{requests.utils.quote(full_prompt)}?width=1024&height=1024&seed={idx}&nologo=true"
+                            
+                            try:
+                                response = requests.get(image_url, timeout=30)
+                                if response.status_code == 200:
+                                    img = Image.open(BytesIO(response.content))
+                                    st.image(img, caption=f"Generated Image {idx+1} (Pollinations)", use_container_width=True)
+                            except Exception as e:
+                                st.error(f"Error loading image {idx+1}: {str(e)}")
                 
                 else:
                     # Use Pollinations.ai (Free)
@@ -165,11 +198,11 @@ if st.button("🖌️ Generate Image", use_container_width=True, type="primary")
                 st.error(f"❌ Error: {str(e)}")
 else:
     if "Gemini" in model_choice and not api_key:
-        st.info("🔑 Please enter your Gemini API key above to start generating images with superior quality.")
+        st.info("🔑 Please enter your Gemini API key above to start generating images with Gemini 3 Pro Image.")
     else:
         st.info("✍️ Enter your prompt and click Generate to create amazing AI images!")
 
 # Footer
 st.markdown("---")
-st.caption("Developed by Yasser Antar | Powered by Gemini & Pollinations AI")
-st.caption("💡 Pro Tip: Use Gemini for best quality product photography and professional images!")
+st.caption("Developed by Yasser Antar | Powered by Gemini 3 Pro & Pollinations AI")
+st.caption("💡 Pro Tip: Use Gemini 3 Pro for best quality product photography and professional images!")
